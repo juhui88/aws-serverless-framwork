@@ -51,7 +51,7 @@ exports.signUp = async (event) => {
     return {
       statusCode: 200,
       body: JSON.stringify({
-        message: "User successfully signed up!",
+        message: "Account created please verify your email",
         username: username, // Save this username for confirmation step
         email: email, // Email for reference
       }),
