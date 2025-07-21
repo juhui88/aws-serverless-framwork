@@ -4,7 +4,7 @@ const {
 } = require("@aws-sdk/client-cognito-identity-provider");
 
 const client = new CognitoIdentityProviderClient({
-  region: "ap-southeast-2", //Specify your AWS region
+  region: process.env.REGION, //Specify your AWS region
 });
 
 exports.signOut = async (event) => {

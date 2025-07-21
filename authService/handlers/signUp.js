@@ -7,7 +7,7 @@ const {
 // Initialize Cognito client with specific region
 
 const client = new CognitoIdentityProviderClient({
-  region: "ap-southeast-2", // Specify the region of the Cognito user pool
+  region: process.env.REGION, // Specify the region of the Cognito user pool
 });
 
 // Define Cognito App Client ID for user pool authentication

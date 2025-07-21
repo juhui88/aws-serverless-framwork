@@ -4,7 +4,7 @@ const {
 } = require("@aws-sdk/client-cognito-identity-provider");
 
 const client = new CognitoIdentityProviderClient({
-  region: "ap-southeast-2", //Specify your AWS region
+  region: process.env.REGION, //Specify your AWS region
 });
 
 //Define Coginto App Client ID for user pool authention
@@ -31,6 +31,8 @@ exports.signIn = async (event) => {
         msg: "User successfully signed in!",
         tokens: response.AuthenticationResult, //this will contain  the
         //AccessToken , RefreshToken, and idToken
+        //event: event,
+        //eventBody: JSON.parse(event.body),
       }),
     };
   } catch (error) {
