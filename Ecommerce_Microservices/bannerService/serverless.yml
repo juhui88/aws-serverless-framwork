@@ -1,0 +1,67 @@
+# "org" ensures this Service is used with the correct Serverless Framework Access Key.
+org: juhui
+# "service" is the name of this project. This will also be added to your AWS resource names.
+service: bannerService
+
+provider:
+  name: aws
+  runtime: nodejs22.x
+  environment:
+    BUCKET_NAME: banner-image-juhui-dev
+    REGION: us-east-1
+    DYNAMO_TABLE: Banners
+  iamRoleStatements:
+    - Effect: Allow
+      Action:
+        - s3:PutObject
+      Resource:
+        - arn:aws:s3:::banner-image-juhui-dev/*
+    - Effect: Allow
+      Action:
+        - dynamodb:PutItem
+      Resource: arn:aws:dynamodb:us-east-1:610420546744:table/Banners
+
+resources:
+  Resources:
+    # this section defined the AWS resource that will be created as part of the deployment
+    BannerImageBucket:
+      Type: AWS::S3::Bucket # Specifiees that the roesource is an s2 bucket
+      Properties:
+        BucketName: banner-image-juhui-dev # the unique name of the s3 bucket
+        CorsConfiguration:
+          CorsRules:
+            - AllowedHeaders:
+                - "*"
+              AllowedMethods:
+                - PUT
+              AllowedOrigins:
+                - "*"
+    # DynamoDB Table Configuration
+    BannerTable:
+      Type: AWS::DynamoDB::Table # specifies that the resource is a DynamoDB table
+      Properties:
+        TableName: Banners
+        BillingMode: PAY_PER_REQUEST
+        AttributeDefinitions:
+          - AttributeName: fileName
+            AttributeType: S
+        KeySchema:
+          - AttributeName: fileName
+            KeyType: HASH
+
+functions:
+  getUploadUrl:
+    handler: handlers/uploadBanner.getUploadUrl
+    events:
+      - httpApi:
+          path: /upload-banner
+          method: post
+  confirmUpload:
+    handler: handlers/confirmUpload.confirmUpload
+    events:
+      - s3:
+          bucket: banner-image-juhui-dev
+          event: s3:ObjectCreated:Put
+          #when a new object is uploaded (Put event) to the s3 bucket
+          existing: true # ensures the function listens to events
+          # for aleary existing objects
