@@ -1,3 +1,5 @@
+const UserModel = require("../models/UserModel");
+
 // Import the required AWS Cognito SDK
 const {
   CognitoIdentityProviderClient,
@@ -18,9 +20,7 @@ exports.signUp = async (event) => {
   // Parse the incoming requiest body to extract user data
   const { email, password, fullName } = JSON.parse(event.body);
 
-  // Generate a unique username from email (remove @ and domain, add timestamp)
-  // This is just an internal ID - users will still login with email
-  const username = email.split("@")[0] + "_" + Date.now();
+  const username = fullName.replace(/\s+/g, "");
 
   // Configure parameters for Cognito SignupCommand
   const params = {
@@ -35,7 +35,7 @@ exports.signUp = async (event) => {
       }, // Email attribute
       {
         Name: "name",
-        Value: fullName,
+        Value: username,
       }, // Full name attribute
     ],
   };
@@ -47,12 +47,16 @@ exports.signUp = async (event) => {
     //Execute the sign-up request
     await client.send(command);
 
+    //save user in DynamoDB after Cognito sign-up succeeds
+    const newUser = new UserModel(email, username);
+    await newUser.save();
+
     // Return success response to the client
     return {
       statusCode: 200,
       body: JSON.stringify({
         message: "Account created please verify your email",
-        username: username, // Save this username for confirmation step
+        username: fullName, // Save this username for confirmation step
         email: email, // Email for reference
       }),
     };
