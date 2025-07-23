@@ -1,0 +1,14 @@
+{
+  "Records": [
+    {
+      "s3": {
+        "bucket": {
+          "name": "category-images-juhui-dev"
+        },
+        "object": {
+          "key": "test-category-image.jpg"
+        }
+      }
+    }
+  ]
+}

@@ -1,0 +1,79 @@
+# "org" ensures this Service is used with the correct Serverless Framework Access Key.
+org: juhui
+# "service" is the name of this project. This will also be added to your AWS resource names.
+service: categoryService
+
+provider:
+  name: aws
+  runtime: nodejs22.x
+  environment:
+    BUCKET_NAME: category-images-juhui-dev
+    REGION: us-east-1
+    DYNAMO_TABLE: Categories
+    SNS_TOPIC_ARN: arn:aws:sns:us-east-1:610420546744:CategoryCleanupTopic
+  iamRoleStatements:
+    - Effect: Allow
+      Action:
+        - s3:PutObject
+        - s3:GetObject
+      Resource: arn:aws:s3:::category-images-juhui-dev/*
+    - Effect: Allow
+      Action:
+        - dynamodb:PutItem
+        - dynamodb:UpdateItem
+        - dynamodb:GetItem
+        - dynamodb:DeleteItem
+        - dynamodb:Scan
+      Resource: arn:aws:dynamodb:us-east-1:610420546744:table/Categories
+    - Effect: Allow
+      Action:
+        - sns:Publish
+      Resource: arn:aws:sns:us-east-1:610420546744:CategoryCleanupTopic
+
+resources:
+  Resources:
+    # 이렇게 쓰면 생성하고 안 쓰면 기존꺼 쓰는 방식인것 같음
+    # CategoryImagesBucket:
+    #   Type: AWS::S3::Bucket
+    #   Properties:
+    #     BucketName: category-images-juhui-dev
+    CategoryTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: Categories
+        BillingMode: PAY_PER_REQUEST
+        AttributeDefinitions:
+          - AttributeName: fileName
+            AttributeType: S
+        KeySchema:
+          - AttributeName: fileName
+            KeyType: HASH
+    CategoryCleanupTopic:
+      Type: AWS::SNS::Topic
+      Properties:
+        TopicName: CategoryCleanupTopic
+    CategoryCleanupSubscription:
+      Type: AWS::SNS::Subscription
+      Properties:
+        TopicArn: arn:aws:sns:us-east-1:610420546744:CategoryCleanupTopic
+        Protocol: email
+        Endpoint: sand8594@naver.com
+
+functions:
+  getUploadUrl:
+    handler: handlers/getUploadUrl.getUploadUrl
+    events:
+      - httpApi:
+          path: /upload-url
+          method: post
+  updateCategoryImage:
+    handler: handlers/updateCategoryImage.updateCategoryImage
+    events:
+      - s3:
+          bucket: category-images-juhui-dev
+          event: s3:ObjectCreated:Put
+          existing: true
+  cleanupCategories:
+    handler: handlers/cleanupCategories.cleanupCategories
+    events:
+      - schedule: rate(2 minutes)
