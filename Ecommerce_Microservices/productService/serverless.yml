@@ -1,0 +1,119 @@
+# "org" ensures this Service is used with the correct Serverless Framework Access Key.
+org: juhui
+# "service" is the name of this project. This will also be added to your AWS resource names.
+service: productService
+
+provider:
+  name: aws
+  runtime: nodejs20.x
+  environment:
+    BUCKET_NAME: product-images-juhui-dev
+    REGION: us-east-1
+    DYNAMO_TABLE: Products
+    CLIENT_ID: 1l0rqai2o135r4l4eqlvh41p0n
+    SNS_TOPIC_ARN: arn:aws:sns:us-east-1:610420546744:ProductCleanupTopic
+  httpApi:
+    authorizers:
+      cognitoAuth:
+        type: jwt
+        identitySource: $request.header.Authorization
+        issuerUrl: https://cognito-idp.us-east-1.amazonaws.com/us-east-1_AYQ5N0kRY
+        audience:
+          - 1l0rqai2o135r4l4eqlvh41p0n
+  iamRoleStatements:
+    - Effect: Allow
+      Action:
+        - s3:PutObject
+        - s3:GetObject
+      Resource: arn:aws:s3:::product-images-juhui-dev/*
+    - Effect: Allow
+      Action:
+        - dynamodb:PutItem
+        - dynamodb:UpdateItem
+        - dynamodb:GetItem
+        - dynamodb:DeleteItem
+        - dynamodb:Scan
+      Resource: arn:aws:dynamodb:us-east-1:610420546744:table/Products
+    - Effect: Allow
+      Action:
+        - sns:Publish
+      Resource: arn:aws:sns:us-east-1:610420546744:ProductCleanupTopic
+
+resources:
+  Resources:
+    ProductTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: Products
+        BillingMode: PAY_PER_REQUEST
+        AttributeDefinitions:
+          - AttributeName: id
+            AttributeType: S
+        KeySchema:
+          - AttributeName: id
+            KeyType: HASH
+    ProductImagesBucket:
+      Type: AWS::S3::Bucket
+      Properties:
+        BucketName: product-images-juhui-dev
+        CorsConfiguration:
+          CorsRules:
+            - AllowedHeaders:
+                - "*"
+              AllowedMethods:
+                - PUT
+              AllowedOrigins:
+                - "*"
+    ProductCleanupTopic:
+      Type: AWS::SNS::Topic
+      Properties:
+        TopicName: ProductCleanupTopic
+    ProductCleanupSubscription:
+      Type: AWS::SNS::Subscription
+      Properties:
+        TopicArn: arn:aws:sns:us-east-1:610420546744:ProductCleanupTopic
+        Protocol: email
+        Endpoint: sand8594@naver.com
+
+functions:
+  getUploadUrl:
+    handler: handlers/getUploadUrl.getUploadUrl
+    events:
+      - httpApi:
+          path: /get-upload-url
+          method: post
+          authorizer:
+            name: cognitoAuth
+  updateProductImage:
+    handler: handlers/updateProductImage.updateProductImage
+    events:
+      - s3:
+          bucket: product-images-juhui-dev
+          event: s3:ObjectCreated:Put
+          existing: true
+  cleanupProducts:
+    handler: handlers/cleanupProducts.cleanupProducts
+    events:
+      - schedule: rate(2 minutes)
+  getApprovedProducts:
+    handler: handlers/getApprovedProducts.getApprovedProducts
+    events:
+      - httpApi:
+          path: /get-approved-products
+          method: get
+          authorizer:
+            name: cognitoAuth
+  test:
+    handler: handlers/test.test
+    events:
+      - httpApi:
+          path: /test
+          method: get
+          authorizer:
+            name: cognitoAuth
+  testNoAuth:
+    handler: handlers/test.test
+    events:
+      - httpApi:
+          path: /test-no-auth
+          method: get
