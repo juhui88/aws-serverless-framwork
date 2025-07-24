@@ -19,6 +19,7 @@ provider:
     - Effect: Allow
       Action:
         - dynamodb:PutItem
+        - dynamodb:Scan
       Resource: arn:aws:dynamodb:us-east-1:610420546744:table/Banners
 
 resources:
@@ -65,3 +66,9 @@ functions:
           #when a new object is uploaded (Put event) to the s3 bucket
           existing: true # ensures the function listens to events
           # for aleary existing objects
+  getAllBanners:
+    handler: handlers/getAllBanners.getAllBanners
+    events:
+      - httpApi:
+          path: /get-all-banners
+          method: get
