@@ -77,3 +77,9 @@ functions:
     handler: handlers/cleanupCategories.cleanupCategories
     events:
       - schedule: rate(2 minutes)
+  getAllCategories:
+    handler: handlers/getAllCategories.getAllCategories
+    events:
+      - httpApi:
+          path: /get-categories
+          method: get
